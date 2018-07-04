@@ -63,6 +63,12 @@ const User = mongoose.model("User", {
   lists: Array
 });
 
+const List = mongoose.model("List", {
+  name: String,
+  description: String,
+  movies: Array
+});
+
 app.post("/api/sign_up", function(req, res) {
   User.findOne({ email: req.body.email }).exec(function(err, user) {
     if (!err) {
@@ -101,6 +107,38 @@ app.post("/api/sign_up", function(req, res) {
           }
         });
       }
+    }
+  });
+});
+
+let testObject1 = { name: "user", userLists: [] };
+let testObject2 = { name: "bonjou", list: "titre de liste" };
+
+testObject1.userLists.push(testObject2.list);
+app.post("/api/lists/add", function(req, res) {
+  let bearerToken = req.headers.authorization;
+  let providedToken = bearerToken.slice(7, bearerToken.length);
+  User.findOne({ token: providedToken }).exec(function(err, user) {
+    if (err) {
+      res.json({ message: "error" });
+    } else if (!user) {
+      res.status(401).send({ error: "Erreur d'authentification" });
+    } else if (user.lists.includes(req.body.name)) {
+      res.status(400).send({ error: "Cette liste existe déjà" });
+    } else {
+      const list = new List({
+        name: req.body.name,
+        description: req.body.description
+      });
+      list.save(function(err, obj) {
+        if (!err) {
+          user.lists.push(obj.name);
+          user.save();
+          res.json(obj);
+        } else {
+          res.json({ error: "An error occurred" });
+        }
+      });
     }
   });
 });
